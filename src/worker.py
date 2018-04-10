@@ -54,8 +54,14 @@ def callback(ch, method, properties, body):
             inputs = parameters["inputs"]
             outputs = parameters["outputs"]
 
-            process = Process()
-            dst_paths = process.launch(program, inputs, outputs, lib_path)
+            dst_paths = []
+            try:
+                process = Process()
+                dst_paths = process.launch(program, inputs, outputs, lib_path)
+            except RuntimeError as e:
+                logging.error(e)
+                traceback.print_exc()
+                return False
 
             logging.info("""End of process from %s to %s""",
                 ', '.join(input["path"] for input in inputs),
