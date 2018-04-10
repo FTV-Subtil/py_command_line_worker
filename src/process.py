@@ -32,7 +32,7 @@ class Process():
 
         for path in lib_path:
             self.env["LD_LIBRARY_PATH"] += ":" + path
-        self.env["LD_LIBRARY_PATH"] += self.command_lib_path
+        self.env["LD_LIBRARY_PATH"] += ":" + self.command_lib_path
 
         command = [self.command_path]
         dst_paths = []
