@@ -20,9 +20,9 @@ class Process():
         self.command_lib_path = self.get_parameter('LIB_PATH', '/usr/lib')
         self.env = os.environ.copy()
 
-    def launch(self, program: str, inputs: list, outputs: list, lib_path: list):
+    def launch(self, program: str, inputs: list, outputs: list, lib_path: list, working_dir: str = None):
 
-        if program.startswith("/"):
+        if program.startswith("/") or program.startswith("./"):
             self.command_path = program
         else:
             self.command_path = os.path.join(self.command_bin_path, program)
@@ -33,6 +33,9 @@ class Process():
         for path in lib_path:
             self.env["LD_LIBRARY_PATH"] += ":" + path
         self.env["LD_LIBRARY_PATH"] += ":" + self.command_lib_path
+
+        if working_dir and not os.path.exists(working_dir):
+            raise FileNotFoundError("The expected working directory does not exists: " + working_dir)
 
         command = [self.command_path]
         dst_paths = []
@@ -58,7 +61,7 @@ class Process():
 
                 # Create missing output directory
                 dst_dir = os.path.dirname(dst_path)
-                if not os.path.exists(dst_dir):
+                if dst_dir and not os.path.exists(dst_dir):
                     logging.debug("Create output directory: %s", dst_dir)
                     os.makedirs(dst_dir)
 
@@ -66,7 +69,7 @@ class Process():
 
         # Process command
         logging.debug("Launching process command: %s", ' '.join(command))
-        command_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=self.env)
+        command_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=working_dir, env=self.env)
         stdout, stderr = command_process.communicate()
         self.log_subprocess(stdout, stderr)
 
