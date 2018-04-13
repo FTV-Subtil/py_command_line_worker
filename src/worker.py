@@ -50,9 +50,9 @@ def callback(ch, method, properties, body):
             if 'libraries' in parameters:
                 lib_path = parameters["libraries"]
 
-            working_dir = None
-            if 'workdir' in parameters:
-                working_dir = parameters["workdir"]
+            exec_dir = None
+            if 'exec_dir' in parameters:
+                exec_dir = parameters["exec_dir"]
 
             program = parameters["program"]
             inputs = parameters["inputs"]
@@ -61,7 +61,7 @@ def callback(ch, method, properties, body):
             dst_paths = []
             try:
                 process = Process()
-                dst_paths = process.launch(program, inputs, outputs, lib_path, working_dir)
+                dst_paths = process.launch(program, inputs, outputs, lib_path, exec_dir)
             except RuntimeError as e:
                 logging.error(e)
                 traceback.print_exc()

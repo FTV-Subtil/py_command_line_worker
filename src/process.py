@@ -20,7 +20,7 @@ class Process():
         self.command_lib_path = self.get_parameter('LIB_PATH', '/usr/lib')
         self.env = os.environ.copy()
 
-    def launch(self, program: str, inputs: list, outputs: list, lib_path: list, working_dir: str = None):
+    def launch(self, program: str, inputs: list, outputs: list, lib_path: list, exec_dir: str = None):
 
         if program.startswith("/") or program.startswith("./"):
             self.command_path = program
@@ -34,8 +34,8 @@ class Process():
             self.env["LD_LIBRARY_PATH"] += ":" + path
         self.env["LD_LIBRARY_PATH"] += ":" + self.command_lib_path
 
-        if working_dir and not os.path.exists(working_dir):
-            raise FileNotFoundError("The expected working directory does not exists: " + working_dir)
+        if exec_dir and not os.path.exists(exec_dir):
+            raise FileNotFoundError("The expected execution directory does not exists: " + exec_dir)
 
         command = [self.command_path]
         dst_paths = []
@@ -69,7 +69,7 @@ class Process():
 
         # Process command
         logging.debug("Launching process command: %s", ' '.join(command))
-        command_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=working_dir, env=self.env)
+        command_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=exec_dir, env=self.env)
         stdout, stderr = command_process.communicate()
         self.log_subprocess(stdout, stderr)
 
