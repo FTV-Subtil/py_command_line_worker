@@ -22,6 +22,19 @@ config.read([
     '/etc/py_command_line_worker/worker.cfg'
 ])
 
+def get_queue_name_from_config():
+    key = "AMQP_QUEUE"
+    if key in os.environ:
+        return os.environ.get(key)
+    return config.get('amqp', 'queue', 'command_line')
+
+queue_name = get_queue_name_from_config()
+
+queue_name_prefix = "job_"
+in_queue = queue_name_prefix + queue_name
+out_completed_queue = queue_name_prefix + queue_name + "_completed"
+out_error_queue = queue_name_prefix + queue_name + "_error"
+
 def check_requirements(requirements):
     meet_requirements = True
     if 'paths' in requirements:
@@ -72,7 +85,7 @@ def callback(ch, method, properties, body):
                 "output": dst_paths
             }
 
-            conn.publish_json('job_command_line_completed', body_message)
+            conn.publish_json(out_completed_queue, body_message)
 
         except ProcessError as e:
             logging.error(e)
@@ -84,7 +97,7 @@ def callback(ch, method, properties, body):
                 "job_id": msg['job_id'],
                 "type": "job_command_line"
             }
-            conn.publish_json('job_command_line_error', error_content)
+            conn.publish_json(out_error_queue, error_content)
 
         except Exception as e:
             logging.error(e)
@@ -95,7 +108,7 @@ def callback(ch, method, properties, body):
                 "job_id": msg['job_id'],
                 "type": "job_command_line"
             }
-            conn.publish_json('job_command_line_error', error_content)
+            conn.publish_json(out_error_queue, error_content)
 
     except Exception as e:
         logging.error(e)
@@ -105,29 +118,12 @@ def callback(ch, method, properties, body):
             "error": str(e),
             "type": "job_command_line"
         }
-        conn.publish_json('job_command_line_error', error_content)
+        conn.publish_json(out_error_queue, error_content)
     return True
 
-def get_in_queue_from_config():
-    key = "AMQP_IN_QUEUE"
-    if key in os.environ:
-        return os.environ.get(key)
-    return config.get('amqp', 'in_queue', 'job_command_line')
-
-def get_out_queues_from_config():
-    out_queues = ""
-    key = "AMQP_OUT_QUEUES"
-    if key in os.environ:
-        out_queues = os.environ.get(key)
-    else:
-        out_queues = config.get('amqp', 'out_queues', 'job_command_line_completed,job_command_line_error')
-    return out_queues.split(',')
-
-in_queue = get_in_queue_from_config()
-out_queues = get_out_queues_from_config()
 
 conn.run(config['amqp'],
         in_queue,
-        out_queues,
+        [out_completed_queue, out_error_queue],
         callback
     )
