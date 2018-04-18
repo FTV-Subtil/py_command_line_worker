@@ -26,7 +26,7 @@ def get_queue_name_from_config():
     key = "AMQP_QUEUE"
     if key in os.environ:
         return os.environ.get(key)
-    return config.get('amqp', 'queue', 'command_line')
+    return config.get('amqp', 'queue', fallback='command_line')
 
 queue_name = get_queue_name_from_config()
 
