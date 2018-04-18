@@ -87,8 +87,7 @@ class Process():
             raise ProcessError(command_process.returncode, message)
         if command_process.returncode != 0:
             message = "Process returned with error "
-            message += "(code: " + str(command_process.returncode) + "):\n"
-            message += stdout.decode("utf-8")
+            message += "(code: " + str(command_process.returncode) + ")"
             raise ProcessError(command_process.returncode, message)
 
         return dst_paths
