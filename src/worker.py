@@ -7,7 +7,7 @@ import logging
 import os
 
 from amqp_connection import Connection
-from process import Process
+from process import Process, ProcessError
 
 conn = Connection()
 
@@ -21,6 +21,19 @@ config.read([
     'worker.cfg',
     '/etc/py_command_line_worker/worker.cfg'
 ])
+
+def get_queue_name_from_config():
+    key = "AMQP_QUEUE"
+    if key in os.environ:
+        return os.environ.get(key)
+    return config.get('amqp', 'queue', fallback='command_line')
+
+queue_name = get_queue_name_from_config()
+
+queue_name_prefix = "job_"
+in_queue = queue_name_prefix + queue_name
+out_completed_queue = queue_name_prefix + queue_name + "_completed"
+out_error_queue = queue_name_prefix + queue_name + "_error"
 
 def check_requirements(requirements):
     meet_requirements = True
@@ -59,13 +72,8 @@ def callback(ch, method, properties, body):
             outputs = parameters["outputs"]
 
             dst_paths = []
-            try:
-                process = Process()
-                dst_paths = process.launch(program, inputs, outputs, lib_path, exec_dir)
-            except RuntimeError as e:
-                logging.error(e)
-                traceback.print_exc()
-                return False
+            process = Process()
+            dst_paths = process.launch(program, inputs, outputs, lib_path, exec_dir)
 
             logging.info("""End of process from %s to %s""",
                 ', '.join(input["path"] for input in inputs),
@@ -77,7 +85,19 @@ def callback(ch, method, properties, body):
                 "output": dst_paths
             }
 
-            conn.publish_json('job_command_line_completed', body_message)
+            conn.publish_json(out_completed_queue, body_message)
+
+        except ProcessError as e:
+            logging.error(e)
+            traceback.print_exc()
+            error_content = {
+                "body": body.decode('utf-8'),
+                "code": e.returned_code,
+                "error": str(e),
+                "job_id": msg['job_id'],
+                "type": "job_command_line"
+            }
+            conn.publish_json(out_error_queue, error_content)
 
         except Exception as e:
             logging.error(e)
@@ -88,7 +108,7 @@ def callback(ch, method, properties, body):
                 "job_id": msg['job_id'],
                 "type": "job_command_line"
             }
-            conn.publish_json('job_command_line_error', error_content)
+            conn.publish_json(out_error_queue, error_content)
 
     except Exception as e:
         logging.error(e)
@@ -98,13 +118,12 @@ def callback(ch, method, properties, body):
             "error": str(e),
             "type": "job_command_line"
         }
-        conn.publish_json('job_command_line_error', error_content)
+        conn.publish_json(out_error_queue, error_content)
     return True
 
 
 conn.run(config['amqp'],
-        'job_command_line',
-        ['job_command_line_completed',
-         'job_command_line_error'],
+        in_queue,
+        [out_completed_queue, out_error_queue],
         callback
     )
