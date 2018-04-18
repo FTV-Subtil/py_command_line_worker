@@ -108,10 +108,26 @@ def callback(ch, method, properties, body):
         conn.publish_json('job_command_line_error', error_content)
     return True
 
+def get_in_queue_from_config():
+    key = "AMQP_IN_QUEUE"
+    if key in os.environ:
+        return os.environ.get(key)
+    return config.get('amqp', 'in_queue', 'job_command_line')
+
+def get_out_queues_from_config():
+    out_queues = ""
+    key = "AMQP_OUT_QUEUES"
+    if key in os.environ:
+        out_queues = os.environ.get(key)
+    else:
+        out_queues = config.get('amqp', 'out_queues', 'job_command_line_completed,job_command_line_error')
+    return out_queues.split(',')
+
+in_queue = get_in_queue_from_config()
+out_queues = get_out_queues_from_config()
 
 conn.run(config['amqp'],
-        'job_command_line',
-        ['job_command_line_completed',
-         'job_command_line_error'],
+        in_queue,
+        out_queues,
         callback
     )
