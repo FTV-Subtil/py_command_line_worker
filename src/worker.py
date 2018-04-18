@@ -7,7 +7,7 @@ import logging
 import os
 
 from amqp_connection import Connection
-from process import Process
+from process import Process, ProcessError
 
 conn = Connection()
 
@@ -59,13 +59,8 @@ def callback(ch, method, properties, body):
             outputs = parameters["outputs"]
 
             dst_paths = []
-            try:
-                process = Process()
-                dst_paths = process.launch(program, inputs, outputs, lib_path, exec_dir)
-            except RuntimeError as e:
-                logging.error(e)
-                traceback.print_exc()
-                return False
+            process = Process()
+            dst_paths = process.launch(program, inputs, outputs, lib_path, exec_dir)
 
             logging.info("""End of process from %s to %s""",
                 ', '.join(input["path"] for input in inputs),
@@ -78,6 +73,18 @@ def callback(ch, method, properties, body):
             }
 
             conn.publish_json('job_command_line_completed', body_message)
+
+        except ProcessError as e:
+            logging.error(e)
+            traceback.print_exc()
+            error_content = {
+                "body": body.decode('utf-8'),
+                "code": e.returned_code,
+                "error": str(e),
+                "job_id": msg['job_id'],
+                "type": "job_command_line"
+            }
+            conn.publish_json('job_command_line_error', error_content)
 
         except Exception as e:
             logging.error(e)

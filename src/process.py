@@ -4,6 +4,13 @@ import logging
 import configparser
 import subprocess
 
+
+class ProcessError(Exception):
+
+    def __init__(self, returned_code, message):
+        super().__init__(message)
+        self.returned_code = returned_code
+
 class Process():
 
     def __init__(self):
@@ -77,12 +84,12 @@ class Process():
             message = "An error occurred processing "
             message += inputs + ": "
             message += stderr.decode("utf-8")
-            raise RuntimeError(message)
+            raise ProcessError(command_process.returncode, message)
         if command_process.returncode != 0:
             message = "Process returned with error "
             message += "(code: " + str(command_process.returncode) + "):\n"
             message += stdout.decode("utf-8")
-            raise RuntimeError(message)
+            raise ProcessError(command_process.returncode, message)
 
         return dst_paths
 
