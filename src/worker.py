@@ -5,6 +5,7 @@ import json
 import traceback
 import logging
 import os
+import requests
 
 from amqp_connection import Connection
 from process import Process, ProcessError
