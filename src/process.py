@@ -27,7 +27,7 @@ class Process():
         self.command_lib_path = self.get_parameter('LIB_PATH', '/usr/lib')
         self.env = os.environ.copy()
 
-    def launch(self, program: str, inputs: list, outputs: list, lib_path: list, exec_dir: str = None):
+    def launch(self, program: str, inputs: list, output_path: str, threads_number: int, lib_path: list, exec_dir: str = None):
 
         if program.startswith("/") or program.startswith("./"):
             self.command_path = program
@@ -47,32 +47,11 @@ class Process():
         command = [self.command_path]
         dst_paths = []
 
-        for input in inputs:
-            options = input["options"]
-            for key, value in options.items():
-                command.append(key)
-                if value is not True:
-                    command.append(str(value))
-            command.append(input["path"])
+        for input_path in inputs:
+            command.append(input_path)
 
-        for output in outputs:
-            options = output["options"]
-            for key, value in options.items():
-                command.append(key)
-                if value is not True:
-                    command.append(str(value))
-
-            if "path" in output:
-                dst_path = output["path"]
-                command.append(dst_path)
-
-                # Create missing output directory
-                dst_dir = os.path.dirname(dst_path)
-                if dst_dir and not os.path.exists(dst_dir):
-                    logging.debug("Create output directory: %s", dst_dir)
-                    os.makedirs(dst_dir)
-
-                dst_paths.append(dst_path)
+        command.append(output_path)
+        command.append(str(threads_number))
 
         # Process command
         logging.debug("Launching process command: %s", ' '.join(command))

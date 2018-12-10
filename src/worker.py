@@ -99,22 +99,23 @@ def callback(ch, method, properties, body):
         try:
             parameters = msg['parameters']
             if 'requirements' in parameters:
-                if not check_requirements(get_parameter(parameters, 'requirements')):
+                if not check_requirements(get_parameter(parameters, 'requirements', [])):
                     return False
 
             lib_path = get_parameter(parameters, 'libraries', [])
-            exec_dir = get_parameter(parameters, 'exec_dir')
+            exec_dir = get_parameter(parameters, 'exec_dir', None)
 
-            program = get_parameter(parameters, 'program')
-            inputs = get_parameter(parameters, 'inputs')
-            outputs = get_parameter(parameters, 'outputs')
+            program = get_parameter(parameters, 'program', None)
+            source_paths = get_parameter(parameters, 'source_paths', None)
+            output = get_parameter(parameters, 'destination_path', None)
+            threads_number = get_parameter(parameters, 'threads_number', 8)
 
             dst_paths = []
             process = Process()
-            dst_paths = process.launch(program, inputs, outputs, lib_path, exec_dir)
+            dst_paths = process.launch(program, source_paths, output, threads_number, lib_path, exec_dir)
 
             logging.info("""End of process from %s to %s""",
-                ', '.join(input["path"] for input in inputs),
+                ', '.join(input["path"] for input in source_paths),
                 ', '.join(dst_paths))
 
             body_message = {
