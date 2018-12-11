@@ -45,7 +45,6 @@ class Process():
             raise FileNotFoundError("The expected execution directory does not exists: " + exec_dir)
 
         command = [self.command_path]
-        dst_paths = []
 
         for input_path in inputs:
             command.append(input_path)
@@ -69,7 +68,7 @@ class Process():
             message += "(code: " + str(command_process.returncode) + ")"
             raise ProcessError(command_process.returncode, message)
 
-        return dst_paths
+        return [output_path]
 
     def log_subprocess(self, stdout, stderr):
         if stdout:

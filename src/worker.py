@@ -115,7 +115,7 @@ def callback(ch, method, properties, body):
             dst_paths = process.launch(program, source_paths, output, threads_number, lib_path, exec_dir)
 
             logging.info("""End of process from %s to %s""",
-                ', '.join(input["path"] for input in source_paths),
+                ', '.join(source_path for source_path in source_paths),
                 ', '.join(dst_paths))
 
             body_message = {
